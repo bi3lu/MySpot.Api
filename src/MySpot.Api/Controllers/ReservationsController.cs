@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using MySpot.Api.Models;
+using MySpot.Api.Commands;
+using MySpot.Api.DTO;
 using MySpot.Api.Services;
 
 namespace MySpot.Api.Controllers
@@ -11,10 +12,10 @@ namespace MySpot.Api.Controllers
         private readonly ReservationsService _service = new();
 
         [HttpGet]
-        public ActionResult<IEnumerable<Reservation>> Get() => Ok(_service.GetAll());
+        public ActionResult<IEnumerable<ReservationDto>> Get() => Ok(_service.GetAllWeekly());
 
-        [HttpGet("{id:int}")]
-        public ActionResult<Reservation> Get([FromRoute] int id)
+        [HttpGet("{id:guid}")]
+        public ActionResult<ReservationDto> Get([FromRoute] Guid id)
         {
             var reservation = _service.Get(id);
 
@@ -27,9 +28,9 @@ namespace MySpot.Api.Controllers
         }
 
         [HttpPost]
-        public ActionResult Post(Reservation reservation)
+        public ActionResult Post(CreateReservation command)
         {
-            var id = _service.Create(reservation);
+            var id = _service.Create(command with { ReservationId = Guid.NewGuid() }) ;
 
             if (id is null)
             {
@@ -39,12 +40,10 @@ namespace MySpot.Api.Controllers
             return CreatedAtAction(nameof(Get), new { id }, null);
         }
 
-        [HttpPut("id:int")]
-        public ActionResult Put(int id, Reservation reservation)
+        [HttpPut("id:guid")]
+        public ActionResult Put(Guid id, ChangeReservationLicensePlate command)
         {
-            reservation.Id = id;    
-           
-            if (_service.Update(reservation))
+            if (_service.Update(command with { ReservationId = id }))
             {
                 return NoContent();
             }
@@ -52,10 +51,10 @@ namespace MySpot.Api.Controllers
             return NotFound();
         }
 
-        [HttpDelete("id:int")]
-        public ActionResult Delete(int id)
+        [HttpDelete("id:guid")]
+        public ActionResult Delete(Guid id)
         {
-            if (_service.Delete(id))
+            if (_service.Delete(new DeleteReservation(id)))
             {
                 return NoContent();
             }
